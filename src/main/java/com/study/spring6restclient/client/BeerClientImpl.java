@@ -3,10 +3,10 @@ package com.study.spring6restclient.client;
 import com.study.spring6restclient.model.BeerDto;
 import com.study.spring6restclient.model.BeerDtoPagedModel;
 import com.study.spring6restclient.model.BeerStyle;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.data.web.PagedModel;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.UUID;
@@ -17,27 +17,29 @@ public class BeerClientImpl implements BeerClient {
     public static final String BEER_PATH = "/api/v1/beer";
     public static final String BEER_ID_PATH = BEER_PATH + "/{beerId}";
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
 
-    public BeerClientImpl(RestTemplateBuilder restTemplateBuilder) {
-        restTemplate = restTemplateBuilder.build();
+    public BeerClientImpl(RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder.build();
     }
 
     @Override
     public BeerDto getBeerById(UUID beerId) {
-        return restTemplate.getForObject(BEER_ID_PATH, BeerDto.class, beerId);
+        return restClient.get()
+                .uri(BEER_ID_PATH, beerId)
+                .retrieve()
+                .body(BeerDto.class);
     }
 
     @Override
     public PagedModel<BeerDto> getAllBeers(String beerName, BeerStyle beerStyle, Boolean showInventory,
-                                     Integer pageNumber, Integer pageSize) {
-        var uriComponentsBuilder = UriComponentsBuilder.fromPath(BEER_PATH);
+                                           Integer pageNumber, Integer pageSize) {
+        var builtUriString = buildQueryParam(beerName, beerStyle, showInventory, pageNumber, pageSize);
 
-        buildQueryParam(uriComponentsBuilder, beerName, beerStyle, showInventory, pageNumber, pageSize);
-
-        var pageResponseEntity = restTemplate.getForEntity(uriComponentsBuilder.toUriString(), BeerDtoPagedModel.class);
-
-        return pageResponseEntity.getBody();
+        return restClient.get()
+                .uri(builtUriString)
+                .retrieve()
+                .body(BeerDtoPagedModel.class);
     }
 
     @Override
@@ -52,24 +54,45 @@ public class BeerClientImpl implements BeerClient {
 
     @Override
     public BeerDto createBeer(BeerDto beerDto) {
-        var uri = restTemplate.postForLocation(BEER_PATH, beerDto);
+        var location = restClient.post()
+                .uri(BEER_PATH)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(beerDto)
+                .retrieve()
+                .toBodilessEntity()
+                .getHeaders()
+                .getLocation();
 
-        return restTemplate.getForObject(uri.getPath(), BeerDto.class);
+        assert location != null;
+        return restClient.get()
+                .uri(location.getPath())
+                .retrieve()
+                .body(BeerDto.class);
     }
 
     @Override
-    public BeerDto updateBeer(BeerDto newBeerDto) {
-        restTemplate.put(BEER_ID_PATH, newBeerDto, newBeerDto.getId());
+    public BeerDto updateBeer(BeerDto beerDto, UUID beerId) {
+        restClient.put()
+                .uri(BEER_ID_PATH, beerId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(beerDto)
+                .retrieve()
+                .toBodilessEntity();
 
-        return getBeerById(newBeerDto.getId());
+        return this.getBeerById(beerId);
     }
 
     @Override
     public void deleteBeer(UUID beerId) {
-        restTemplate.delete(BEER_ID_PATH, beerId);
+        restClient.delete()
+                .uri(BEER_ID_PATH, beerId)
+                .retrieve()
+                .toBodilessEntity();
     }
 
-    private void buildQueryParam(UriComponentsBuilder uriComponentsBuilder, String beerName, BeerStyle beerStyle, Boolean showInventory, Integer pageNumber, Integer pageSize) {
+    private String buildQueryParam(String beerName, BeerStyle beerStyle, Boolean showInventory, Integer pageNumber, Integer pageSize) {
+        var uriComponentsBuilder = UriComponentsBuilder.fromPath(BEER_PATH);
+
         if (beerName != null) {
             uriComponentsBuilder.queryParam("beerName", beerName);
         }
@@ -85,5 +108,7 @@ public class BeerClientImpl implements BeerClient {
         if (pageSize != null) {
             uriComponentsBuilder.queryParam("pageSize", pageSize);
         }
+
+        return uriComponentsBuilder.toUriString();
     }
 }

@@ -1,9 +1,7 @@
-package com.study.resttemplatetest.client;
+package com.study.spring6restclient.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.study.spring6restclient.client.BeerClient;
-import com.study.spring6restclient.client.BeerClientImpl;
 import com.study.spring6restclient.config.OAuthClientInterceptor;
 import com.study.spring6restclient.config.RestTemplateBuilderConfig;
 import com.study.spring6restclient.model.BeerDto;
@@ -16,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
@@ -70,8 +67,6 @@ class BeerClientMockTest {
     BeerClient beerClient;
     @Autowired
     MockRestServiceServer mockRestServiceServer;
-    @Autowired
-    RestTemplateBuilder restTemplateBuilder;
     @Autowired
     ObjectMapper objectMapper;
     @Autowired
@@ -178,8 +173,8 @@ class BeerClientMockTest {
 
         mockGetByIdRequest();
 
-        var responseDto = beerClient.updateBeer(testDto);
-        assertThat(responseDto.getId()).isEqualTo(testDtoId);
+        var responseDto = beerClient.updateBeer(testDto, testDtoId);
+        assertThat(responseDto).isEqualTo(testDto);
 
         mockRestServiceServer.verify();
     }

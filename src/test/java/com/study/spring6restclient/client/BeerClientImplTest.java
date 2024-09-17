@@ -1,6 +1,5 @@
-package com.study.resttemplatetest.client;
+package com.study.spring6restclient.client;
 
-import com.study.spring6restclient.client.BeerClient;
 import com.study.spring6restclient.model.BeerDto;
 import com.study.spring6restclient.model.BeerStyle;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,7 +79,7 @@ class BeerClientImplTest {
         final String newBeerName = "Mango Bobs - 3 - updated";
 
         savedDto.setBeerName(newBeerName);
-        savedDto = beerClient.updateBeer(savedDto);
+        savedDto = beerClient.updateBeer(savedDto, savedDto.getId());
 
         assertEquals(newBeerName, savedDto.getBeerName());
     }
